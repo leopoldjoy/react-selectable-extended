@@ -3,7 +3,7 @@
 Allows individual or group selection of items using the mouse/touch.
 
 ## Demo
-[Try it out](http://unclecheese.github.io/react-selectable/example)
+[Try it out](http://leopoldjoy.github.io/react-selectable-extended/example/)
 
 ## Based on react-selectable
 This project is based on [react-selectable](https://github.com/unclecheese/react-selectable) by [unclecheese](https://github.com/unclecheese). It extends the original functionality in the following ways:

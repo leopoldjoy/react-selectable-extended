@@ -24,53 +24,40 @@ class App extends React.Component {
 
 		this.state = {
 			selectedItems: [],
+			selectingItems: [],
 			tolerance: 0,
 			distance: 0,
 		}
 
 		this.handleSelection = this.handleSelection.bind(this);
-		this.clearItems = this.clearItems.bind(this);
+		this.handleSelecting = this.handleSelecting.bind(this);
 		this.handleToleranceChange = this.handleToleranceChange.bind(this);
 	}
 
-
-	componentDidMount () {
-		document.addEventListener('click', this.clearItems);
-	}
-
-
-	componentWillUnmount () {
-		document.removeEventListener('click', this.clearItems);
-	}
-
-
 	handleSelection (keys) {
 		this.setState({
-			selectedItems: keys
+			selectedItems: keys,
+			selectingItems: this.state.selectingItems
 		});
 	}
 
-
-	clearItems (e) {
-		if(!isNodeInRoot(e.target, this.refs.selectable)) {
-			this.setState({
-				selectedItems: []
-			});
-		}
+	handleSelecting (keys) {
+		this.setState({
+			selectingItems: keys,
+			selectedItems: this.state.selectedItems
+		});
 	}
-
 
 	handleToleranceChange (e) {
 		this.setState({
-			tolerance: e.target.value
+			tolerance: parseInt(e.target.value)
 		});
 	}
-
 
 	render () {
 		return (
 			<div>
-				<h1>React Selectable Demo</h1>
+				<h1>React Selectable Extended Demo</h1>
 				<div className="sidebar">
 					<div className="info">						
 						<strong>Tolerance</strong>: <span>{this.state.tolerance}</span><br/>
@@ -94,19 +81,22 @@ class App extends React.Component {
 					className="main" 
 					ref="selectable"
 					onSelection={this.handleSelection} 
+					duringSelection={this.handleSelecting}
 					tolerance={this.state.tolerance}
 					globalMouse={this.state.isGlobal}
-					distance={this.state.distance}>
-				
+					distance={this.state.distance}
+					dontClearSelection={Boolean(true)}>
 				{this.props.items.map((item, i) => {
 					const selected = this.state.selectedItems.indexOf(i) > -1;
+					const selecting = this.state.selectingItems.indexOf(i) > -1;
 					return (
 						<SelectableItem
 							selectableKey={i}
 							key={i} 
 							title={item.title} 
 							year={item.year} 
-							selected={selected} />
+							selected={selected}
+							selecting={selecting} />
 					);
 				})}
 				</SelectableGroup>
@@ -118,10 +108,16 @@ class App extends React.Component {
 
 const Item = ({
 	selected,
+	selecting,
 	title,
 	year
 }) => {
-	const classes = selected ? 'item selected' : 'item';
+	let classes;
+	if(selecting){
+		classes = selected ? 'item selected selecting' : 'item selecting';
+	}else{
+		classes = selected ? 'item selected' : 'item';
+	}
 	return (
 		<div className={classes}>
 			<h2>{title}</h2>
