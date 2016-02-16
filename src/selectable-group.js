@@ -14,7 +14,11 @@ class SelectableGroup extends React.Component {
 			isBoxSelecting: false,
 			boxWidth: 0,
 			boxHeight: 0,
-			currentItems: []			
+			currentItems: [],
+			selectingItems: [],
+			mouseDownStarted: false,
+			mouseMoveStarted: false,
+			mouseUpStarted: false
 		}
 
 		this._mouseDownData = null;
@@ -27,6 +31,10 @@ class SelectableGroup extends React.Component {
 		this._selectElements = this._selectElements.bind(this);
 		this._registerSelectable = this._registerSelectable.bind(this);
 		this._unregisterSelectable = this._unregisterSelectable.bind(this);
+		this._clearSelections = this._clearSelections.bind(this);
+		this._clearSelectings = this._clearSelectings.bind(this);
+		this._updatedSelecting = this._updatedSelecting.bind(this);
+		this._desktopEventCoords = this._desktopEventCoords.bind(this);
 	}
 
 
@@ -41,8 +49,8 @@ class SelectableGroup extends React.Component {
 
 
 	componentDidMount () {
-		ReactDOM.findDOMNode(this).addEventListener('click', this._click);	
-		ReactDOM.findDOMNode(this).addEventListener('mousedown', this._mouseDown);	
+		ReactDOM.findDOMNode(this).addEventListener('mousedown', this._mouseDown);
+		ReactDOM.findDOMNode(this).addEventListener('touchstart', this._mouseDown);
 	}
 	
 
@@ -50,8 +58,8 @@ class SelectableGroup extends React.Component {
 	 * Remove global event listeners
 	 */
 	componentWillUnmount () {
-		ReactDOM.findDOMNode(this).removeEventListener('click', this._click);
-		ReactDOM.findDOMNode(this).removeEventListener('mousedown', this._mouseDown);		
+		ReactDOM.findDOMNode(this).removeEventListener('mousedown', this._mouseDown);
+		ReactDOM.findDOMNode(this).removeEventListener('touchstart', this._mouseDown);
 	}
 
 
@@ -69,7 +77,12 @@ class SelectableGroup extends React.Component {
 	 * Called while moving the mouse with the button down. Changes the boundaries
 	 * of the selection box
 	 */
-	_openSelector (e) {		
+	_openSelector (e) {
+		if(this.state.mouseMoveStarted) return;
+		this.state.mouseMoveStarted = true;
+
+		e = this._desktopEventCoords(e);
+
 	    const w = Math.abs(this._mouseDownData.initialW - e.pageX);
 	    const h = Math.abs(this._mouseDownData.initialH - e.pageY);
 
@@ -78,31 +91,41 @@ class SelectableGroup extends React.Component {
 	    	boxWidth: w,
 	    	boxHeight: h,
 	    	boxLeft: Math.min(e.pageX, this._mouseDownData.initialW),
-	    	boxTop: Math.min(e.pageY, this._mouseDownData.initialH)
+	    	boxTop: Math.min(e.pageY, this._mouseDownData.initialH),
+	    	selectingItems: this._updatedSelecting() // Update list of currently selected items...
+	    }, function(){
+	    	this.state.mouseMoveStarted = false;
 	    });
+
+	    this.props.duringSelection(this.state.selectingItems);
 	}
 
 	/**
-	 * Called when a user clicks on an item. Selects the clicked item.
+	 * Returns array of all of the elements that are currently under the selector box.
+	 */
+	_updatedSelecting () {
+		var selectbox = ReactDOM.findDOMNode(this.refs.selectbox);
+		var tolerance = this.props.tolerance;
+		if (!selectbox) return [];
+		var currentItems = [];
+		this._registry.forEach(itemData => {			
+			if(itemData.domNode && doObjectsCollide(selectbox, itemData.domNode, tolerance)) {
+				currentItems.push(itemData.key);
+			}
+		});
+
+		return currentItems;
+	}
+
+	/**
+	 * Called when a user clicks on an item (and doesn't drag). Selects the clicked item.
+	 * Called by the _selectElements() function.
 	 */
 	_click (e) {
-		
-		// We breifly open the selector to capture the position of the clicked item
-		this._mouseDownData = {
-			boxLeft: e.pageX,
-			boxTop: e.pageY,
-			initialW: e.pageX,
-			initialH: e.pageY
-		};
-		this._openSelector(e);
-
 		const node = ReactDOM.findDOMNode(this);
 		
 		const {tolerance, dontClearSelection} = this.props,
 	    	  selectbox = ReactDOM.findDOMNode(this.refs.selectbox);
-
-		// Right clicks
-		if(e.which === 3 || e.button === 2) return;
 
 		var newItems = []; // For holding the clicked item
 
@@ -112,7 +135,7 @@ class SelectableGroup extends React.Component {
 			newItems = this.state.currentItems;
 		}
 
-		this._registry.forEach(itemData => {			
+		this._registry.forEach(itemData => {
 			if(itemData.domNode && doObjectsCollide(selectbox, itemData.domNode, tolerance)) {
 				if(!dontClearSelection){
 					newItems.push(itemData.key); // Only clicked item will be selected now
@@ -127,6 +150,10 @@ class SelectableGroup extends React.Component {
 			}
 		});
 
+		// Clear array for duringSelection, since the "selecting" is now finished
+		this._clearSelectings();
+		this.props.duringSelection(this.state.selectingItems); // Last time duringSelection() will be called since drag is complete.
+
 		// Close selector and update currently selected items
 		this.setState({
 	    	isBoxSelecting: false,
@@ -136,8 +163,6 @@ class SelectableGroup extends React.Component {
 	    });
 
 	    this.props.onSelection(this.state.currentItems);
-
-		e.preventDefault();
 	}
 
 	/**
@@ -145,9 +170,16 @@ class SelectableGroup extends React.Component {
 	 * be added, and if so, attach event listeners
 	 */
 	_mouseDown (e) {
+		if(this.state.mouseDownStarted) return;
+		this.state.mouseDownStarted = true; 
+		this.state.mouseUpStarted = false;  
+
+		e = this._desktopEventCoords(e);
+
 		const node = ReactDOM.findDOMNode(this);
-		let collides, offsetData, distanceData;		
+		let collides, offsetData, distanceData;	
 		ReactDOM.findDOMNode(this).addEventListener('mouseup', this._mouseUp);
+		ReactDOM.findDOMNode(this).addEventListener('touchend', this._mouseUp);
 		
 		// Right clicks
 		if(e.which === 3 || e.button === 2) return;
@@ -169,18 +201,19 @@ class SelectableGroup extends React.Component {
 				}
 			);
 			if(!collides) return;
-		} 		
+		}
 
 		this._mouseDownData = {			
 			boxLeft: e.pageX,
 			boxTop: e.pageY,
 	        initialW: e.pageX,
-        	initialH: e.pageY        	
+        	initialH: e.pageY    	
 		};		
 
 		e.preventDefault();
 
 		ReactDOM.findDOMNode(this).addEventListener('mousemove', this._openSelector);
+		ReactDOM.findDOMNode(this).addEventListener('touchmove', this._openSelector);
 	}
 
 
@@ -188,8 +221,14 @@ class SelectableGroup extends React.Component {
 	 * Called when the user has completed selection
 	 */
 	_mouseUp (e) {
-	    ReactDOM.findDOMNode(this).removeEventListener('mousemove', this._openSelector);
-	    ReactDOM.findDOMNode(this).removeEventListener('mouseup', this._mouseUp);
+		if(this.state.mouseUpStarted) return;
+		this.state.mouseUpStarted = true;
+		this.state.mouseDownStarted = false;
+
+		ReactDOM.findDOMNode(this).removeEventListener('mousemove', this._openSelector);
+		ReactDOM.findDOMNode(this).removeEventListener('mouseup', this._mouseUp);
+		ReactDOM.findDOMNode(this).removeEventListener('touchmove', this._openSelector);
+	    ReactDOM.findDOMNode(this).removeEventListener('touchend', this._mouseUp);
 
 	    if(!this._mouseDownData) return;
 	    
@@ -201,7 +240,10 @@ class SelectableGroup extends React.Component {
 	 * Selects multiple children given x/y coords of the mouse
 	 */
 	_selectElements (e) {
-	    this._mouseDownData = null;
+
+		// Clear array for duringSelection, since the "selecting" is now finished
+		this._clearSelectings();
+		this.props.duringSelection(this.state.selectingItems); // Last time duringSelection() will be called since drag is complete.
 	    
 	    const {tolerance, dontClearSelection} = this.props,
 	    	  selectbox = ReactDOM.findDOMNode(this.refs.selectbox);
@@ -210,7 +252,22 @@ class SelectableGroup extends React.Component {
 			this._clearSelections();
 		}
 
-		if(!selectbox) return;
+		if(!selectbox){
+			// Since the selectbox is null, no drag event occured. Thus, we will process this as a click event...
+			this.setState({
+		    	isBoxSelecting: true,
+		    	boxWidth: 0,
+		    	boxHeight: 0,
+		    	boxLeft: this._mouseDownData.boxLeft,
+		    	boxTop: this._mouseDownData.boxTop
+		    }, function(){
+		    	this._click();
+		    });
+			return;
+		}
+	
+		// Mouse is now up...
+	    this._mouseDownData = null;
 		
 		var newItems = [];
 		var allNewItemsAlreadySelected = true; // Book keeping for dontClearSelection feature
@@ -225,11 +282,11 @@ class SelectableGroup extends React.Component {
 		});
 
 		var newCurrentItems = [];
-		if(!dontClearSelection||!allNewItemsAlreadySelected){ // dontClearSelection is not enabled or (it is) 
-															  // and newItems should be added to the selection
+		if(!dontClearSelection||!allNewItemsAlreadySelected){ // dontClearSelection is not enabled or
+															  // newItems should be added to the selection
 			newCurrentItems = this.state.currentItems.concat(newItems);
 		}else{
-			newCurrentItems = this.state.currentItems.filter(function(i) {return newItems.indexOf(i) < 0;}); // Delete newItems from _currentItems
+			newCurrentItems = this.state.currentItems.filter(function(i) {return newItems.indexOf(i) < 0;}); // Delete newItems from currentItems
 		}
 
 		this.setState({
@@ -247,6 +304,26 @@ class SelectableGroup extends React.Component {
 	 */
 	_clearSelections (){
 		this.state.currentItems = [];
+	}
+
+	/**
+	 * Empties the array of items that were under selector box while selecting,
+	 * clearing this.state.selectingItems
+	 */
+	_clearSelectings (){
+		this.state.selectingItems = [];
+	}
+
+	/**
+	 * Used to return event object with desktop (non-touch) format of event 
+	 * coordinates, regardless of whether the action is from mobile or desktop.
+	 */
+	_desktopEventCoords (e){
+		if(e.pageX==undefined || e.pageY==undefined){ // Touch-device
+			e.pageX = e.targetTouches[0].pageX;
+			e.pageY = e.targetTouches[0].pageY;
+		}
+		return e;
 	}
 
 	/**
@@ -287,9 +364,15 @@ class SelectableGroup extends React.Component {
 SelectableGroup.propTypes = {
 
 	/**
-	 * Event that will fire when items are selected. Passes an array of keys		 
+	 * Event that will fire when items are selected. Passes an array of keys.		 
 	 */
 	onSelection: React.PropTypes.func,
+
+	/**
+	 * Event that will fire rapidly during selection (while the selector is 
+	 * being dragged). Passes an array of keys.		 
+	 */
+	duringSelection: React.PropTypes.func,
 	
 	/**
 	 * The component that will represent the Selectable DOM node		 
@@ -311,7 +394,9 @@ SelectableGroup.propTypes = {
 	fixedPosition: React.PropTypes.bool,
 	
 	/**
-	 * Don't clear current selected items before next selection
+	 * When enabled, makes all new selections add to the already selected items,
+	 * except for selections that contain only previously selected items--in this case
+	 * it unselects those items.
 	 */
 	dontClearSelection: React.PropTypes.bool
  
@@ -319,6 +404,7 @@ SelectableGroup.propTypes = {
 
 SelectableGroup.defaultProps = {
 	onSelection: () => {},
+	duringSelection: () => {},
 	component: 'div',
 	tolerance: 0,
 	fixedPosition: false,
