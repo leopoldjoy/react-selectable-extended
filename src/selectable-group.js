@@ -15,11 +15,12 @@ class SelectableGroup extends React.Component {
 			boxWidth: 0,
 			boxHeight: 0,
 			currentItems: [],
-			selectingItems: [],
-			mouseDownStarted: false,
-			mouseMoveStarted: false,
-			mouseUpStarted: false
+			selectingItems: []
 		}
+
+		this._mouseDownStarted = false;
+		this._mouseMoveStarted = false;
+		this._mouseUpStarted = false;
 
 		this._mouseDownData = null;
 		this._registry = [];
@@ -78,8 +79,8 @@ class SelectableGroup extends React.Component {
 	 * of the selection box
 	 */
 	_openSelector (e) {
-		if(this.state.mouseMoveStarted) return;
-		this.state.mouseMoveStarted = true;
+		if(this._mouseMoveStarted) return;
+		this._mouseMoveStarted = true;
 
 		e = this._desktopEventCoords(e);
 
@@ -93,8 +94,8 @@ class SelectableGroup extends React.Component {
 	    	boxLeft: Math.min(e.pageX, this._mouseDownData.initialW),
 	    	boxTop: Math.min(e.pageY, this._mouseDownData.initialH),
 	    	selectingItems: this._updatedSelecting() // Update list of currently selected items...
-	    }, function(){
-	    	this.state.mouseMoveStarted = false;
+	    }, () => {
+	    	this._mouseMoveStarted = false;
 	    });
 
 	    this.props.duringSelection(this.state.selectingItems);
@@ -170,9 +171,9 @@ class SelectableGroup extends React.Component {
 	 * be added, and if so, attach event listeners
 	 */
 	_mouseDown (e) {
-		if(this.state.mouseDownStarted) return;
-		this.state.mouseDownStarted = true; 
-		this.state.mouseUpStarted = false;  
+		if(this._mouseDownStarted) return;
+		this._mouseDownStarted = true; 
+		this._mouseUpStarted = false;  
 
 		e = this._desktopEventCoords(e);
 
@@ -221,9 +222,9 @@ class SelectableGroup extends React.Component {
 	 * Called when the user has completed selection
 	 */
 	_mouseUp (e) {
-		if(this.state.mouseUpStarted) return;
-		this.state.mouseUpStarted = true;
-		this.state.mouseDownStarted = false;
+		if(this._mouseUpStarted) return;
+		this._mouseUpStarted = true;
+		this._mouseDownStarted = false;
 
 		ReactDOM.findDOMNode(this).removeEventListener('mousemove', this._openSelector);
 		ReactDOM.findDOMNode(this).removeEventListener('mouseup', this._mouseUp);
