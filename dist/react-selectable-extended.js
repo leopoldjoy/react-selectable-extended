@@ -127,11 +127,12 @@ return /******/ (function(modules) { // webpackBootstrap
 				boxWidth: 0,
 				boxHeight: 0,
 				currentItems: [],
-				selectingItems: [],
-				mouseDownStarted: false,
-				mouseMoveStarted: false,
-				mouseUpStarted: false
+				selectingItems: []
 			};
+
+			_this._mouseDownStarted = false;
+			_this._mouseMoveStarted = false;
+			_this._mouseUpStarted = false;
 
 			_this._mouseDownData = null;
 			_this._registry = [];
@@ -198,8 +199,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		}, {
 			key: '_openSelector',
 			value: function _openSelector(e) {
-				if (this.state.mouseMoveStarted) return;
-				this.state.mouseMoveStarted = true;
+				var _this2 = this;
+
+				if (this._mouseMoveStarted) return;
+				this._mouseMoveStarted = true;
 
 				e = this._desktopEventCoords(e);
 
@@ -214,7 +217,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					boxTop: Math.min(e.pageY, this._mouseDownData.initialH),
 					selectingItems: this._updatedSelecting() // Update list of currently selected items...
 				}, function () {
-					this.state.mouseMoveStarted = false;
+					_this2._mouseMoveStarted = false;
 				});
 
 				this.props.duringSelection(this.state.selectingItems);
@@ -305,9 +308,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		}, {
 			key: '_mouseDown',
 			value: function _mouseDown(e) {
-				if (this.state.mouseDownStarted) return;
-				this.state.mouseDownStarted = true;
-				this.state.mouseUpStarted = false;
+				if (this._mouseDownStarted) return;
+				this._mouseDownStarted = true;
+				this._mouseUpStarted = false;
 
 				e = this._desktopEventCoords(e);
 
@@ -357,9 +360,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		}, {
 			key: '_mouseUp',
 			value: function _mouseUp(e) {
-				if (this.state.mouseUpStarted) return;
-				this.state.mouseUpStarted = true;
-				this.state.mouseDownStarted = false;
+				if (this._mouseUpStarted) return;
+				this._mouseUpStarted = true;
+				this._mouseDownStarted = false;
 
 				_reactDom2.default.findDOMNode(this).removeEventListener('mousemove', this._openSelector);
 				_reactDom2.default.findDOMNode(this).removeEventListener('mouseup', this._mouseUp);
@@ -378,7 +381,7 @@ return /******/ (function(modules) { // webpackBootstrap
 		}, {
 			key: '_selectElements',
 			value: function _selectElements(e) {
-				var _this2 = this;
+				var _this3 = this;
 
 				// Clear array for duringSelection, since the "selecting" is now finished
 				this._clearSelectings();
@@ -417,7 +420,7 @@ return /******/ (function(modules) { // webpackBootstrap
 				this._registry.forEach(function (itemData) {
 					if (itemData.domNode && (0, _doObjectsCollide2.default)(selectbox, itemData.domNode, tolerance)) {
 						newItems.push(itemData.key);
-						if (_this2.state.currentItems.indexOf(itemData.key) == -1 && dontClearSelection) {
+						if (_this3.state.currentItems.indexOf(itemData.key) == -1 && dontClearSelection) {
 							allNewItemsAlreadySelected = false;
 						}
 					}
