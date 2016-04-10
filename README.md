@@ -10,6 +10,7 @@ This project is based on [react-selectable](https://github.com/unclecheese/react
 * Adds support for clicking individual items without dragging.
 * Adds optional `dontClearSelection` feature to allow for additions to selected items.
 * Adds optional `duringSelection` callback feature to allow for a callback function to be called repeatedly throughout selection.
+* Adds support for touch-based (mobile) events.
 
 If you are looking for a lightweight, stateless selector and don't need any of the features listed above, go with [react-selectable](https://github.com/unclecheese/react-selectable).
 
