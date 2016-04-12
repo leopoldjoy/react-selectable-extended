@@ -22,7 +22,7 @@ npm install react-selectable-extended
 ```js
 import React from 'react';
 import { render } from 'react-dom';
-import { SelectableGroup, createSelectable } from 'react-selectable';
+import { SelectableGroup, createSelectable } from 'react-selectable-extended';
 import SomeComponent from './some-component';
 
 const SelectableComponent = createSelectable(SomeComponent);
