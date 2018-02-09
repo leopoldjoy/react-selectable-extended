@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import isNodeInRoot from './nodeInRoot';
@@ -53,9 +54,9 @@ class SelectableGroup extends React.Component {
 		ReactDOM.findDOMNode(this).addEventListener('mousedown', this._mouseDown);
 		ReactDOM.findDOMNode(this).addEventListener('touchstart', this._mouseDown);
 	}
-	
 
-	/**	 
+
+	/**
 	 * Remove global event listeners
 	 */
 	componentWillUnmount () {
@@ -109,7 +110,7 @@ class SelectableGroup extends React.Component {
 		var tolerance = this.props.tolerance;
 		if (!selectbox) return [];
 		var currentItems = [];
-		this._registry.forEach(itemData => {			
+		this._registry.forEach(itemData => {
 			if(itemData.domNode && doObjectsCollide(selectbox, itemData.domNode, tolerance)) {
 				currentItems.push(itemData.key);
 			}
@@ -124,7 +125,7 @@ class SelectableGroup extends React.Component {
 	 */
 	_click (e) {
 		const node = ReactDOM.findDOMNode(this);
-		
+
 		const {tolerance, dontClearSelection} = this.props,
 	    	  selectbox = ReactDOM.findDOMNode(this.refs.selectbox);
 
@@ -172,20 +173,20 @@ class SelectableGroup extends React.Component {
 	 */
 	_mouseDown (e) {
 		if(this._mouseDownStarted) return;
-		this._mouseDownStarted = true; 
-		this._mouseUpStarted = false;  
+		this._mouseDownStarted = true;
+		this._mouseUpStarted = false;
 
 		e = this._desktopEventCoords(e);
 
 		const node = ReactDOM.findDOMNode(this);
-		let collides, offsetData, distanceData;	
+		let collides, offsetData, distanceData;
 		ReactDOM.findDOMNode(this).addEventListener('mouseup', this._mouseUp);
 		ReactDOM.findDOMNode(this).addEventListener('touchend', this._mouseUp);
-		
+
 		// Right clicks
 		if(e.which === 3 || e.button === 2) return;
 
-		if(!isNodeInRoot(e.target, node)) {	
+		if(!isNodeInRoot(e.target, node)) {
 			offsetData = getBoundsForNode(node);
 			collides = doObjectsCollide(
 				{
@@ -204,12 +205,12 @@ class SelectableGroup extends React.Component {
 			if(!collides) return;
 		}
 
-		this._mouseDownData = {			
+		this._mouseDownData = {
 			boxLeft: e.pageX,
 			boxTop: e.pageY,
 	        initialW: e.pageX,
-        	initialH: e.pageY    	
-		};		
+        	initialH: e.pageY
+		};
 
 		e.preventDefault();
 
@@ -232,8 +233,8 @@ class SelectableGroup extends React.Component {
 	    ReactDOM.findDOMNode(this).removeEventListener('touchend', this._mouseUp);
 
 	    if(!this._mouseDownData) return;
-	    
-		return this._selectElements(e);			
+
+		return this._selectElements(e);
 	}
 
 
@@ -245,10 +246,10 @@ class SelectableGroup extends React.Component {
 		// Clear array for duringSelection, since the "selecting" is now finished
 		this._clearSelectings();
 		this.props.duringSelection(this.state.selectingItems); // Last time duringSelection() will be called since drag is complete.
-	    
+
 	    const {tolerance, dontClearSelection} = this.props,
 	    	  selectbox = ReactDOM.findDOMNode(this.refs.selectbox);
-		
+
 		if(!dontClearSelection){ // Clear old selection if feature is not enabled
 			this._clearSelections();
 		}
@@ -266,14 +267,14 @@ class SelectableGroup extends React.Component {
 		    });
 			return;
 		}
-	
+
 		// Mouse is now up...
 	    this._mouseDownData = null;
-		
+
 		var newItems = [];
 		var allNewItemsAlreadySelected = true; // Book keeping for dontClearSelection feature
-		
-		this._registry.forEach(itemData => {			
+
+		this._registry.forEach(itemData => {
 			if(itemData.domNode && doObjectsCollide(selectbox, itemData.domNode, tolerance)) {
 				newItems.push(itemData.key);
 				if(this.state.currentItems.indexOf(itemData.key) == -1 && dontClearSelection){
@@ -299,7 +300,7 @@ class SelectableGroup extends React.Component {
 
 		this.props.onSelection(this.state.currentItems);
 	}
-	
+
 	/**
 	 * Unselects all items, clearing this.state.currentItems
 	 */
@@ -316,7 +317,7 @@ class SelectableGroup extends React.Component {
 	}
 
 	/**
-	 * Used to return event object with desktop (non-touch) format of event 
+	 * Used to return event object with desktop (non-touch) format of event
 	 * coordinates, regardless of whether the action is from mobile or desktop.
 	 */
 	_desktopEventCoords (e){
@@ -348,11 +349,11 @@ class SelectableGroup extends React.Component {
 			border: '1px dashed #999',
 			width: '100%',
 			height: '100%',
-			float: 'left'			
+			float: 'left'
 		};
 
 		return (
-			<this.props.component {...this.props}>				
+			<this.props.component {...this.props}>
 				{this.state.isBoxSelecting &&
 				  <div style={boxStyle} ref="selectbox"><span style={spanStyle}></span></div>
 				}
@@ -365,42 +366,42 @@ class SelectableGroup extends React.Component {
 SelectableGroup.propTypes = {
 
 	/**
-	 * Event that will fire when items are selected. Passes an array of keys.		 
+	 * Event that will fire when items are selected. Passes an array of keys.
 	 */
-	onSelection: React.PropTypes.func,
+	onSelection: PropTypes.func,
 
 	/**
-	 * Event that will fire rapidly during selection (while the selector is 
-	 * being dragged). Passes an array of keys.		 
+	 * Event that will fire rapidly during selection (while the selector is
+	 * being dragged). Passes an array of keys.
 	 */
-	duringSelection: React.PropTypes.func,
-	
+	duringSelection: PropTypes.func,
+
 	/**
-	 * The component that will represent the Selectable DOM node		 
+	 * The component that will represent the Selectable DOM node
 	 */
-	component: React.PropTypes.node,
-	
+	component: PropTypes.node,
+
 	/**
 	 * Amount of forgiveness an item will offer to the selectbox before registering
-	 * a selection, i.e. if only 1px of the item is in the selection, it shouldn't be 
-	 * included.		 
+	 * a selection, i.e. if only 1px of the item is in the selection, it shouldn't be
+	 * included.
 	 */
-	tolerance: React.PropTypes.number,
+	tolerance: PropTypes.number,
 
 	/**
 	 * In some cases, it the bounding box may need fixed positioning, if your layout
 	 * is relying on fixed positioned elements, for instance.
 	 * @type boolean
 	 */
-	fixedPosition: React.PropTypes.bool,
-	
+	fixedPosition: PropTypes.bool,
+
 	/**
 	 * When enabled, makes all new selections add to the already selected items,
 	 * except for selections that contain only previously selected items--in this case
 	 * it unselects those items.
 	 */
-	dontClearSelection: React.PropTypes.bool
- 
+	dontClearSelection: PropTypes.bool
+
 };
 
 SelectableGroup.defaultProps = {
@@ -413,7 +414,7 @@ SelectableGroup.defaultProps = {
 };
 
 SelectableGroup.childContextTypes = {
-	selectable: React.PropTypes.object
+	selectable: PropTypes.object
 };
 
 export default SelectableGroup;
